@@ -5,7 +5,7 @@ import org.apache.spark.mllib.tree._
 import org.apache.spark.mllib.tree.model._
 import org.apache.spark.rdd._
 
-val rawData = sc.textFile("file:///root/Downloads/train.csv").filter(!_.contains("PassengerId,Survived,Pclass,Name,Sex,Age,SibSp,Parch,Ticket,Fare,Cabin,Embarked"))
+val rawData = sc.textFile("file:///root/kaggle/kaggletitanic/test.csv").filter(!_.contains("PassengerId,Survived,Pclass,Name,Sex,Age,SibSp,Parch,Ticket,Fare,Cabin,Embarked"))
 
 var data = rawData.map(line => {
   // line = 1,0,3,"Braund, Mr. Owen Harris",male,22,1,0,A/5 21171,7.25,,S
@@ -19,7 +19,6 @@ var data = rawData.map(line => {
   }
   val str = line.substring(0,start-1)+line.substring(i+1)
   str.split(",").tail
-  
 })
 
 data = data.filter(_.size > 9).map(arr => {
@@ -91,58 +90,3 @@ val evaluations = for(impurity <- Array("gini","entropy");depth <- Array(10,20,3
   ((impurity,depth,bins),metrics.precision)
 }
 
-//对含有age字段的记录进行预测
-var testRawData = sc.textFile("file:///root/Downloads/test.csv")
-
-var data = testRawData.map(line => {
-  // line = 1,3,"Braund, Mr. Owen Harris",male,22,1,0,A/5 21171,7.25,,S
-  // delete Name arrtibute
-  val start = line.indexOf("\"")
-  var i = 0
-  for(index <- (start+1 until line.length)){
-    if(line(index) == '"'){
-        i = index
-    }
-  }
-  val str = line.substring(0,start-1)+line.substring(i+1)
-  val id = str.split(",").head
-  var arr = str.split(",").tail
-  arr(1) = sexMap(arr(1))
-  arr(8) = embarkedMap(arr(8))
-  val tmp = arr.slice(0,5):+arr(6):+arr(8)
-  (id -> tmp)
-})
-
-//data = data.filter(r => {
-//  var flag = true
-//  for(str <- r._2 if flag){
-//    if(str.equals("")){
-//      flag = false
-//    }
-//  }
-//  flag
-//})
-
-// only remain the record which has age
-data = data.filter(r => r._2(2) != "")
-
-val withageresult = data.map(r => {
-  (r._1 -> forest.predict(Vectors.dense(r._2.map(_.toDouble))))
-})
-
-var data = rawData.map(line => {
-  // line = 1,0,3,"Braund, Mr. Owen Harris",male,22,1,0,A/5 21171,7.25,,S
-  // delete Name arrtibute
-  val start = line.indexOf("\"")
-  var i = 0
-  for(index <- (start+1 until line.length)){
-    if(line(index) == '"'){
-        i = index
-    }
-  }
-  val str = line.substring(0,start-1)+line.substring(i+1)
-  str.split(",").tail
-
-})
-
-data = data.filter(_(3) == "")
